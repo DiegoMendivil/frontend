@@ -2,29 +2,17 @@ import type { Task } from '../models/task.interface';
 
 interface TaskSummaryProps {
   tasks: Task[];
+  total: number;
 }
 
-export function TaskSummary({ tasks }: TaskSummaryProps) {
-  const completed = tasks.filter(({ status }) => status === 'completed').length;
-  const pending = tasks.length - completed;
+export function TaskSummary({ tasks, total }: TaskSummaryProps) {
+  const pendingOnPage = tasks.filter(({ status }) => status === 'pending').length;
+  const completedOnPage = tasks.length - pendingOnPage;
 
   return (
-    <section className="summary-grid" aria-label="Resumen de tareas">
-      <article className="summary-card summary-card--total">
-        <span className="summary-card__label">Total de tareas</span>
-        <strong>{tasks.length}</strong>
-        <span className="summary-card__detail">En tu lista</span>
-      </article>
-      <article className="summary-card summary-card--pending">
-        <span className="summary-card__label">Pendientes</span>
-        <strong>{pending}</strong>
-        <span className="summary-card__detail">Por completar</span>
-      </article>
-      <article className="summary-card summary-card--completed">
-        <span className="summary-card__label">Completadas</span>
-        <strong>{completed}</strong>
-        <span className="summary-card__detail">Buen trabajo</span>
-      </article>
+    <section className="task-summary" aria-label="Resumen de tareas">
+      <p><strong>{total}</strong> resultado(s) en la consulta</p>
+      <p>Página actual: {pendingOnPage} pendiente(s) y {completedOnPage} completada(s)</p>
     </section>
   );
 }

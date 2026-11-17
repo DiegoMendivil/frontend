@@ -3,10 +3,11 @@ import type { FormEvent } from 'react';
 import { TASK_TITLE_MAX_LENGTH, validateTaskTitle } from '../utils/task-validation';
 
 interface TaskFormProps {
-  onAddTask: (title: string) => void;
+  isSubmitting: boolean;
+  onAddTask: (title: string) => Promise<boolean>;
 }
 
-export function TaskForm({ onAddTask }: TaskFormProps) {
+export function TaskForm({ isSubmitting, onAddTask }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [error, setError] = useState('');
 
@@ -15,7 +16,7 @@ export function TaskForm({ onAddTask }: TaskFormProps) {
     if (error) setError(validateTaskTitle(value) ?? '');
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const validationMessage = validateTaskTitle(title);
     if (validationMessage) {
@@ -23,9 +24,11 @@ export function TaskForm({ onAddTask }: TaskFormProps) {
       return;
     }
 
-    onAddTask(title.trim());
-    setTitle('');
-    setError('');
+    const wasCreated = await onAddTask(title.trim());
+    if (wasCreated) {
+      setTitle('');
+      setError('');
+    }
   }
 
   return (
@@ -47,11 +50,14 @@ export function TaskForm({ onAddTask }: TaskFormProps) {
             placeholder="Ejemplo: revisar documentación"
             maxLength={TASK_TITLE_MAX_LENGTH}
             value={title}
+            disabled={isSubmitting}
             onChange={(event) => handleTitleChange(event.target.value)}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? 'task-title-help task-title-error' : 'task-title-help'}
           />
-          <button type="submit">Agregar tarea</button>
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Guardando...' : 'Agregar tarea'}
+          </button>
         </div>
         <p id="task-title-help" className="helper-text">
           {title.length}/{TASK_TITLE_MAX_LENGTH} caracteres
