@@ -7,25 +7,26 @@ import { formatTaskDate } from '../utils/date';
 
 interface TaskItemProps {
   task: Task;
-  onToggleStatus: (id: string) => void;
-  onEditTask: (id: string, title: string) => void;
-  onDeleteTask: (id: string) => boolean;
+  canDelete: boolean;
+  onToggleStatus: (task: Task) => Promise<boolean>;
+  onEditTask: (task: Task, title: string) => Promise<boolean>;
+  onDeleteTask: (task: Task) => Promise<boolean>;
 }
 
-export function TaskItem({ task, onToggleStatus, onEditTask, onDeleteTask }: TaskItemProps) {
-  const { id, title, status, updatedAt } = task;
+export function TaskItem({ task, canDelete, onToggleStatus, onEditTask, onDeleteTask }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [draftTitle, setDraftTitle] = useState(title);
+  const [draftTitle, setDraftTitle] = useState(task.title);
   const [error, setError] = useState('');
+  const [isBusy, setIsBusy] = useState(false);
 
-  function handleStartEdit() {
-    setDraftTitle(title);
+  function startEditing() {
+    setDraftTitle(task.title);
     setError('');
     setIsEditing(true);
   }
 
-  function handleCancelEdit() {
-    setDraftTitle(title);
+  function cancelEditing() {
+    setDraftTitle(task.title);
     setError('');
     setIsEditing(false);
   }
@@ -35,7 +36,7 @@ export function TaskItem({ task, onToggleStatus, onEditTask, onDeleteTask }: Tas
     if (error) setError(validateTaskTitle(value) ?? '');
   }
 
-  function handleEditSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleEditSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const validationMessage = validateTaskTitle(draftTitle);
     if (validationMessage) {
@@ -43,66 +44,80 @@ export function TaskItem({ task, onToggleStatus, onEditTask, onDeleteTask }: Tas
       return;
     }
 
-    onEditTask(id, draftTitle.trim());
-    setError('');
-    setIsEditing(false);
+    setIsBusy(true);
+    const wasUpdated = await onEditTask(task, draftTitle.trim());
+    setIsBusy(false);
+    if (wasUpdated) {
+      setError('');
+      setIsEditing(false);
+    }
+  }
+
+  async function handleToggle() {
+    setIsBusy(true);
+    await onToggleStatus(task);
+    setIsBusy(false);
+  }
+
+  async function handleDelete() {
+    setIsBusy(true);
+    await onDeleteTask(task);
+    setIsBusy(false);
   }
 
   return (
-    <article className={`task-item task-item--${status}`} role="listitem">
+    <article className={`task-item task-item--${task.status}`} role="listitem" aria-busy={isBusy}>
       <div className="task-item__content">
         {isEditing ? (
           <form className="task-item__edit-form" onSubmit={handleEditSubmit} noValidate>
-            <label className="sr-only" htmlFor={`edit-task-${id}`}>Editar título de la tarea</label>
+            <label className="sr-only" htmlFor={`edit-task-${task.id}`}>Editar título de la tarea</label>
             <input
-              id={`edit-task-${id}`}
+              id={`edit-task-${task.id}`}
               className="task-item__edit-input"
               value={draftTitle}
               onChange={(event) => handleDraftChange(event.target.value)}
               maxLength={TASK_TITLE_MAX_LENGTH}
+              disabled={isBusy}
               aria-invalid={Boolean(error)}
-              aria-describedby={error ? `edit-error-${id}` : undefined}
+              aria-describedby={error ? `edit-error-${task.id}` : undefined}
               autoFocus
             />
             {error && (
-              <p id={`edit-error-${id}`} className="field-error" role="alert">{error}</p>
+              <p id={`edit-error-${task.id}`} className="field-error" role="alert">{error}</p>
             )}
             <div className="task-item__edit-actions">
-              <button type="submit">Guardar</button>
-              <button type="button" onClick={handleCancelEdit}>Cancelar</button>
+              <button type="submit" disabled={isBusy}>{isBusy ? 'Guardando...' : 'Guardar'}</button>
+              <button type="button" onClick={cancelEditing} disabled={isBusy}>Cancelar</button>
             </div>
           </form>
         ) : (
           <>
             <h3 className="task-item__title">
-              <Link className="task-title-link" to={`/tasks/${id}`}>{title}</Link>
+              <Link className="task-title-link" to={`/tasks/${task.id}`}>{task.title}</Link>
             </h3>
-            <span className="task-status">{status === 'completed' ? 'Completada' : 'Pendiente'}</span>
+            <span className="task-status">{task.status === 'completed' ? 'Completada' : 'Pendiente'}</span>
             <p className="task-item__date">
               Actualizada:{' '}
-              <time dateTime={updatedAt}>{formatTaskDate(updatedAt)}</time>
+              <time dateTime={task.updatedAt}>{formatTaskDate(task.updatedAt)}</time>
             </p>
           </>
         )}
       </div>
-      <div className="task-item__actions" role="group" aria-label={`Acciones para ${title}`}>
+      <div className="task-item__actions" role="group" aria-label={`Acciones para ${task.title}`}>
         {!isEditing && (
-          <Link className="button-link button-link--secondary" to={`/tasks/${id}`}>
+          <Link className="button-link button-link--secondary" to={`/tasks/${task.id}`}>
             Ver detalle
           </Link>
         )}
-        <button type="button" onClick={() => onToggleStatus(id)} disabled={isEditing}>
-          {status === 'completed' ? 'Reabrir' : 'Completar'}
+        <button type="button" onClick={() => void handleToggle()} disabled={isBusy || isEditing}>
+          {task.status === 'completed' ? 'Reabrir' : 'Completar'}
         </button>
-        <button type="button" onClick={handleStartEdit} disabled={isEditing}>Editar</button>
-        <button
-          type="button"
-          className="button-danger"
-          onClick={() => onDeleteTask(id)}
-          disabled={isEditing}
-        >
-          Eliminar
-        </button>
+        <button type="button" onClick={startEditing} disabled={isBusy || isEditing}>Editar</button>
+        {canDelete && (
+          <button type="button" className="button-danger" onClick={() => void handleDelete()} disabled={isBusy || isEditing}>
+            {isBusy ? 'Procesando...' : 'Eliminar'}
+          </button>
+        )}
       </div>
     </article>
   );

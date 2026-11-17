@@ -4,18 +4,21 @@ import { TaskItem } from './TaskItem';
 interface TaskListProps {
   tasks: Task[];
   emptyMessage: string;
-  onToggleStatus: (id: string) => void;
-  onEditTask: (id: string, title: string) => void;
-  onDeleteTask: (id: string) => boolean;
+  canDelete: boolean;
+  onToggleStatus: (task: Task) => Promise<boolean>;
+  onEditTask: (task: Task, title: string) => Promise<boolean>;
+  onDeleteTask: (task: Task) => Promise<boolean>;
 }
 
 export function TaskList({
   tasks,
   emptyMessage,
+  canDelete,
   onToggleStatus,
   onEditTask,
   onDeleteTask,
 }: TaskListProps) {
+  if (tasks.length === 0) return null;
   const resultLabel = tasks.length === 1 ? '1 tarea' : `${tasks.length} tareas`;
 
   return (
@@ -38,6 +41,7 @@ export function TaskList({
             <TaskItem
               key={task.id}
               task={task}
+              canDelete={canDelete}
               onToggleStatus={onToggleStatus}
               onEditTask={onEditTask}
               onDeleteTask={onDeleteTask}

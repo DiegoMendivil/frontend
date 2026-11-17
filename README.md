@@ -1,90 +1,66 @@
-# Administrador de tareas - Frontend
+# Administrador de tareas Frontend
 
-Aplicación SPA desarrollada con React, TypeScript, Vite, PNPM y React Router para administrar tareas.
+SPA desarrollada con React, TypeScript, Vite, React Router y Fetch API. Las tareas y las identidades se administran mediante la API REST del proyecto Backend.
 
-## Alcance actual
+## Funciones
 
-La aplicación administra una colección local de tareas mediante React y TypeScript. Incluye:
-
-- Operaciones CRUD de tareas.
-- Validación accesible al registrar y editar títulos.
-- Búsqueda por título, filtro por estado y ordenamiento.
-- Resumen general calculado con toda la colección.
-- Persistencia local con `localStorage`.
-- Navegación entre inicio, tareas y detalle dinámico.
-- Página 404 para direcciones o tareas inexistentes.
-- Diseño adaptable.
-
-Las tareas se guardan en el almacenamiento local del navegador y se restauran al volver a abrir la aplicación. La búsqueda, filtro y orden solo afectan la vista; no se guardan ni modifican la colección principal. La integración con la API REST se realizará posteriormente.
-
-## Tecnologías
-
-- React
-- TypeScript
-- React Router 7.18.4
-- Vite
-- PNPM
-- CSS
-- Git y GitHub
-
-## Requisitos
-
-- Node.js
-- PNPM
-
-## Instalación
-
-```bash
-pnpm install
-```
-
-## Ejecución
-
-```bash
-pnpm dev
-```
-
-## Validación
-
-```bash
-pnpm lint
-pnpm build
-```
-
-## Estructura principal
-
-- `src/components`: componentes visuales y reutilizables.
-- `src/data`: colección local de tareas.
-- `src/layouts`: estructura compartida entre páginas.
-- `src/models`: tipos e interfaces.
-- `src/pages`: páginas asociadas a rutas.
-- `src/services`: consulta y almacenamiento de tareas.
-- `src/styles`: estilos globales.
-- `src/utils`: validación y utilidades.
-- `docs`: preguntas y documentación de las actividades.
+- Registro e inicio de sesión.
+- Restauración de identidad mediante `/api/auth/me`.
+- Rutas públicas y privadas con redirección a la ruta solicitada.
+- CRUD remoto de tareas con encabezado Bearer.
+- Búsqueda, filtro, ordenamiento y paginación del servidor.
+- Detalle remoto por identificador.
+- Eliminación visible solo para el rol `admin`; el Backend valida el permiso real.
+- Estados de carga, vacío, error y reintento.
 
 ## Rutas
 
-- `/`: inicio y resumen.
-- `/tasks`: administración de tareas.
-- `/tasks/:taskId`: detalle de una tarea.
-- `*`: página para rutas inexistentes.
+- `/`: inicio.
+- `/login`: inicio de sesión.
+- `/register`: registro.
+- `/tasks`: administración protegida.
+- `/tasks/:taskId`: detalle protegido.
+- `*`: página 404.
 
-## Modelo `Task`
+## Requisitos
 
-Cada tarea contiene `id`, `title`, `status`, `createdAt` y `updatedAt`. Las fechas se representan como cadenas ISO y `status` solo admite `pending` o `completed`.
+- Node.js y PNPM.
+- Backend de tareas en `http://localhost:3000`, con MongoDB configurado.
 
-## Operaciones CRUD
+## Configuración y ejecución local
 
-- Create: registrar una tarea desde el formulario.
-- Read: mostrar las tareas de la colección.
-- Update: cambiar el estado o editar el título.
-- Delete: eliminar una tarea después de confirmar.
+1. Copia `.env.example` como `.env.local` y deja `VITE_API_URL=/api`.
+2. Inicia el Backend desde su proyecto con `pnpm dev` y mantén esa terminal abierta.
+3. En este proyecto ejecuta `pnpm install` y `pnpm dev`.
+4. Abre la dirección que indique Vite.
 
-## Búsqueda, filtro y orden
+El proxy de desarrollo envía `/api` y `/health` a `http://localhost:3000`. Reinicia Vite si cambias la configuración. No guardes credenciales ni URI de MongoDB en el Frontend.
 
-La lista permite buscar por título, filtrar por estado y ordenar por actualización reciente, creación reciente o título. El resumen siempre cuenta todas las tareas, no solo las visibles.
+## Validación y despliegue
 
-## Persistencia
+```bash
+pnpm lint
+pnpm test
+pnpm build
+pnpm verify
+```
 
-Las tareas se almacenan en `localStorage` bajo la clave `task-manager.tasks`. Si el contenido guardado no es válido, se inicia con los datos de respaldo.
+## Pruebas
+
+El proyecto incluye pruebas con Vitest y React Testing Library para validar el comportamiento de validación de formularios, gestión de sesión y redirecciones de rutas públicas y privadas.
+
+## Render
+
+Para desplegar la aplicación en Render como sitio estático:
+
+1. Crea un nuevo servicio Web o Static Site en Render.
+2. Conecta este repositorio.
+3. Usa el comando de construcción: `pnpm install && pnpm build`.
+4. Define la carpeta de publicación: `dist`.
+5. Añade la variable `VITE_API_URL=/api` para que el sitio funcione con el proxy del backend o con la URL del servicio desplegado.
+
+Se recomienda mantener el backend en un servicio separado y no exponer secretos ni tokens en el repositorio.
+
+## Sesión y seguridad
+
+El Frontend conserva únicamente el access token en `sessionStorage` durante la pestaña y recupera el usuario con `/auth/me`. El cierre de sesión elimina el token local, pero no revoca el JWT en el Backend. El token es accesible para JavaScript; este almacenamiento es didáctico y no sustituye una estrategia de producción con cookies HttpOnly/BFF. Nunca copies tokens, contraseñas ni secretos a Git, capturas o documentación.
