@@ -1,26 +1,26 @@
 import { Link } from 'react-router';
-import { TaskSummary } from '../components/TaskSummary';
-import type { Task } from '../models/task.interface';
+import { useAuth } from '../hooks/useAuth';
 
-interface HomePageProps {
-  tasks: Task[];
-}
+export function HomePage() {
+  const { status, user } = useAuth();
+  const isAuthenticated = status === 'authenticated' && user !== null;
 
-export function HomePage({ tasks }: HomePageProps) {
   return (
-    <div className="page-stack">
-      <section className="panel welcome-panel" aria-labelledby="home-title">
-        <p className="section-heading__eyebrow">Inicio</p>
-        <h2 id="home-title">Organiza y consulta tus actividades</h2>
-        <p>
-          Registra tareas, actualiza su estado y utiliza las herramientas de consulta
-          para concentrarte en el trabajo importante.
-        </p>
-        <div className="welcome-panel__actions">
-          <Link className="button-link" to="/tasks">Administrar tareas</Link>
-        </div>
-      </section>
-      <TaskSummary tasks={tasks} />
-    </div>
+    <section className="panel welcome-panel" aria-labelledby="home-title">
+      <p className="section-heading__eyebrow">Inicio</p>
+      <h2 id="home-title">Administrador de tareas protegido</h2>
+      <p>Las tareas se consultan y actualizan en tiempo real.</p>
+      {isAuthenticated && (
+        <p>Sesión activa para {user.name} con rol <strong>{user.role}</strong>.</p>
+      )}
+      <div className="welcome-panel__actions">
+        <Link className="button-link" to={isAuthenticated ? '/tasks' : '/login'}>
+          {isAuthenticated ? 'Administrar tareas' : 'Iniciar sesión'}
+        </Link>
+        {!isAuthenticated && (
+          <Link className="button-link button-link--secondary" to="/register">Crear cuenta</Link>
+        )}
+      </div>
+    </section>
   );
 }
