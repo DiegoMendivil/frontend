@@ -1,13 +1,12 @@
 services:
   - type: web
-    name: task-manager-frontend
+    name: task-frontend-ipzp
     runtime: static
-    plan: free
-    buildCommand: pnpm install && pnpm build
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
     staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
-        value: /api
+        value: https://task-manager-api.onrender.com/api
     headers:
       - path: /*
         name: X-Frame-Options
@@ -16,3 +15,34 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+
+  - type: web
+    name: task-manager-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /health
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: task_api
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1h
+      - key: JWT_ISSUER
+        value: task-api
+      - key: JWT_AUDIENCE
+        value: task-api-clients
+      - key: CORS_ORIGIN
+        fromService:
+          type: web
+          name: task-frontend-ipzp
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: AUTH_RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: AUTH_RATE_LIMIT_MAX
+        value: 10
